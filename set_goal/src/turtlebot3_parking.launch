@@ -1,0 +1,6 @@
+<launch>
+  <include file="$(find turtlebot3_bringup)/launch/turtlebot3_rpicamera.launch" />
+  <node name="republish" type="republish" pkg="image_transport" output="screen" args="compressed in:=raspicam_node/image raw out:=raspicam_node/image" />
+  <node ns="raspicam_node" name="image_proc" type="image_proc" pkg="image_proc" output="screen" args="image_raw:=image _approximate_s=true _queue_size:=20" />
+  <include file="$(find turtlebot3_automatic_parking_vision)/launch/turtlebot3_automatic_parking_vision.launch" />
+</launch>

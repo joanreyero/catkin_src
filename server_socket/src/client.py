@@ -1,0 +1,116 @@
+#!/usr/bin/env python
+
+# Uncomment and customize:
+# Lines 6, 7, 8, 53, 58, 111, 112
+
+import rospy
+from std_msgs.msg import String
+from std_msgs.msg import UInt32
+
+import socket
+import time
+import json
+import threading
+
+
+# Default header message buffer size
+HEADER_BUFF_SIZE = 32  # bytes
+
+
+# Helpers
+
+
+def send_json_message(socket, data):
+    """
+    Send message to a provided socket in JSON
+    :param socket: socket object
+    :param data: message to be sent (dictionary)
+    """
+    message = json.dumps(data)
+    header = format(len(message), '032b')
+    socket.send(header.encode())
+    socket.send(message.encode())
+
+
+def receive_json_message(socket):
+    """
+    Receive JSON message from the provided socket
+    :param socket: socket object
+    :return: received message (dictionary)
+    """
+    raw_msg = socket.recv(HEADER_BUFF_SIZE).decode()
+    if not raw_msg:
+        return None
+    header = int(raw_msg, 2)
+    message = json.loads(socket.recv(header).decode())
+    return message
+
+
+# Main code
+
+
+def init_pose_callback(data):
+    # pub_1.publish(msg)
+    print 'Doing init pose'
+
+
+def set_goal_callback(data):
+    # pub_2.publish(msg)
+    print 'Doing set goal to {}'.format(data["goal_id"])
+
+
+class Client:
+
+    def __init__(self, server_address, server_port):
+        self._server_address = server_address
+        self._server_port = server_port
+        self._client_socket = None
+        self._commands = {
+            'init_pose' : init_pose_callback,
+            'set_goal' : set_goal_callback
+        }
+
+    
+    """
+    Helper methods
+    """
+
+
+    def _setup_sockets(self):
+        self._client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)        
+        self._client_socket.connect((self._server_address, self._server_port))
+        print 'Sockets set'
+    
+    """
+    Main methods
+    """
+
+
+    def _communicate(self):
+        while True:
+            # Wait for server command
+            msg = receive_json_message(self._client_socket)
+            print msg         
+            
+            # Execute action and let server know about the completion
+            self._commands[msg['action']](msg['data'])
+            time.sleep(5)
+            send_json_message(self._client_socket, { 'response_code' : '200' })
+
+    
+    def start(self):
+        print 'Starting the client...'
+        self._setup_sockets()
+        print 'Connected to: {}:{}'.format(self._server_address, str(self._server_port))
+        self._communicate()
+
+
+if __name__ == '__main__':
+    # Start rospy node on a separate thread
+    threading.Thread(target= lambda : rospy.init_node('server_sockets_node', disable_signals = True)).start()
+    # pub_1 = rospy.Publisher('/init_pose', UInt32, queue_size = 10)
+    
+    # Start the client
+    client = Client('172.20.170.246', 1338)
+    client.start()

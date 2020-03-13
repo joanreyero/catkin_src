@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Polo</title>
+	</head>
+	<body>
+		<h1>Polo</h1>
+		<a href="/api/v1/goal/0" class="button">Bring item</a>
+		<a href="/api/v1/goal/1" class="button">Park</a>
+	</body>
+</html>
